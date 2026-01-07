@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/shreeram-hegde/go-url-shortener/internal/model"
 )
@@ -44,5 +45,17 @@ func (m *MemoryStore) Delete(code string) error {
 	defer m.mu.Unlock()
 
 	delete(m.data, code)
+	return nil
+}
+
+func (m *MemoryStore) DeleteExpired(now time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for code, u := range m.data {
+		if now.After(u.ExpiresAt) {
+			delete(m.data, code)
+		}
+	}
 	return nil
 }
