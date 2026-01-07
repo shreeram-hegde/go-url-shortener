@@ -12,7 +12,10 @@ import (
 
 func main() {
 
-	st := store.NewMemoryStore()
+	st, err := store.NewSQLiteStore("data.db")
+	if err != nil {
+		log.Fatal(err)
+	}
 	svc := service.NewShortenerService(st)
 	h := handler.NewHandler(svc)
 
@@ -41,3 +44,9 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", mux))
 
 }
+
+/*persistence test
+
+{"short_url":"http://localhost:8080/wxzjlJ"}
+
+*/
