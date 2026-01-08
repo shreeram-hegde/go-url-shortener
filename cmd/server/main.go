@@ -19,13 +19,25 @@ func main() {
 		log.Println("No .env file found, using system env")
 	}
 
+	//getting port number from .env
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	st, cleanup, err := createStore()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer cleanup()
 	svc := service.NewShortenerService(st)
-	h := handler.NewHandler(svc)
+
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:" + port
+	}
+
+	h := handler.NewHandler(svc, baseURL)
 
 	_ = svc
 
@@ -48,8 +60,14 @@ func main() {
 	mux.HandleFunc("/shorten", h.CreateShortURL)
 	mux.HandleFunc("/", h.Redirect)
 
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	//health for hosting
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	log.Println("Starting server on :", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 
 }
 

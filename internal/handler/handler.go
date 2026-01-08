@@ -9,11 +9,15 @@ import (
 )
 
 type Handler struct {
-	svc *service.ShortenerService
+	svc     *service.ShortenerService
+	baseURL string
 }
 
-func NewHandler(svc *service.ShortenerService) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc *service.ShortenerService, baseURL string) *Handler {
+	return &Handler{
+		svc:     svc,
+		baseURL: baseURL,
+	}
 }
 
 type shortenRequest struct { //I guess this is the request format, a post request should match this
@@ -53,7 +57,7 @@ func (h *Handler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 
 	//Create the response structure
 	resp := shortenResponse{
-		ShortURL: "http://localhost:8080/" + u.Code,
+		ShortURL: h.baseURL + "/" + u.Code,
 	}
 
 	//Add header stuff and encode the response to json
