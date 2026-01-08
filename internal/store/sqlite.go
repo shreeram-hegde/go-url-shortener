@@ -83,3 +83,7 @@ func (s *SQLiteStore) DeleteExpired(now time.Time) error {
 	_, err := s.db.Exec(`DELETE FROM urls WHERE expires_at < ?`, now)
 	return err
 }
+
+func (s *SQLiteStore) Close() error {
+	return s.db.Close()
+}

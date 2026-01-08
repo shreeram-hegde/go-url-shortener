@@ -1,21 +1,29 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/shreeram-hegde/go-url-shortener/internal/handler"
 	"github.com/shreeram-hegde/go-url-shortener/internal/service"
 	"github.com/shreeram-hegde/go-url-shortener/internal/store"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, using system env")
+	}
 
-	st, err := store.NewSQLiteStore("data.db")
+	st, cleanup, err := createStore()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer cleanup()
 	svc := service.NewShortenerService(st)
 	h := handler.NewHandler(svc)
 
@@ -45,8 +53,37 @@ func main() {
 
 }
 
-/*persistence test
+func createStore() (store.Store, func(), error) {
+	storeType := os.Getenv("STORE")
+	if storeType == "" {
+		storeType = "memory" //the default is memory version
+	}
 
-{"short_url":"http://localhost:8080/wxzjlJ"}
+	switch storeType {
+	case "memory":
+		st := store.NewMemoryStore()
+		fmt.Println("Starting in memory DB")
+		return st, func() {}, nil
 
-*/
+	case "sqlite":
+		path := os.Getenv("SQLITE_PATH")
+		if path == "" {
+			path = "data.db"
+		}
+
+		st, err := store.NewSQLiteStore(path)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		//cleanup
+		fmt.Println(`Starting in SQLite DB with the path`, path)
+		return st, func() {
+			st.Close()
+		}, nil
+
+	default:
+		return nil, nil, fmt.Errorf("unknown STORE type: &s", storeType)
+
+	}
+}
